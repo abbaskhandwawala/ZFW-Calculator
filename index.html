@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZFW Restriction Calculator — Weight &amp; Balance</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.18);
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6b65;
+    --text-hint: #9d9d96;
+    --green: #0F6E56;
+    --green-light: #E1F5EE;
+    --green-mid: #1D9E75;
+    --amber: #854F0B;
+    --amber-light: #FAEEDA;
+    --amber-mid: #EF9F27;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --red-mid: #E24B4A;
+    --blue-light: #E6F1FB;
+    --blue: #185FA5;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    background: #0a2a22;
+    color: #fff;
+    padding: 0 2rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .topbar-logo {
+    width: 32px; height: 32px;
+    background: var(--green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .topbar-logo svg { width: 18px; height: 18px; }
+  .topbar-title { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; }
+  .topbar-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 1px; }
+  .topbar-badge {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+
+  /* ── Page layout ── */
+  .page { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  .page-header { margin-bottom: 2rem; }
+  .page-header h1 { font-size: 26px; font-weight: 700; color: var(--text-primary); margin-bottom: 5px; }
+  .page-header p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 560px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    border: 0.5px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-hint);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .card-title svg { width: 14px; height: 14px; opacity: 0.6; }
+
+  /* ── Form fields ── */
+  .field-grid { display: grid; gap: 1rem; }
+  .field-grid-2 { grid-template-columns: 1fr 1fr; }
+  .field-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  @media (max-width: 580px) {
+    .field-grid-2, .field-grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .field-hint { font-size: 11px; color: var(--text-hint); margin-top: -3px; }
+
+  .input-wrap { position: relative; }
+  .input-wrap input,
+  .input-wrap select,
+  select.standalone,
+  input.standalone {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--surface);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .input-wrap input:focus,
+  .input-wrap select:focus,
+  select.standalone:focus,
+  input.standalone:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(15,110,86,0.12);
+  }
+  .input-wrap input[readonly] {
+    background: var(--surface2);
+    color: var(--text-secondary);
+    cursor: default;
+  }
+  .unit-tag {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-hint);
+    pointer-events: none;
+  }
+  .input-wrap input[type=number] { padding-right: 40px; }
+
+  /* Remove number arrows */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type=number] { -moz-appearance: textfield; }
+
+  /* Select arrow */
+  select.standalone, .input-wrap select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b65' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  /* ── Aircraft limits strip ── */
+  .limits-strip {
+    display: none;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 1rem;
+  }
+  .limits-strip.show { display: grid; }
+  .limit-chip {
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .limit-chip .lc-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-hint); }
+  .limit-chip .lc-val { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-top: 2px; }
+
+  /* ── Result ── */
+  .result-wrap { display: none; }
+  .result-wrap.show { display: block; }
+
+  .result-main {
+    border-radius: var(--radius-xl);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+  .result-main.ok   { border-color: var(--green); }
+  .result-main.warn { border-color: var(--amber-mid); }
+  .result-main.crit { border-color: var(--red); }
+
+  .result-header {
+    padding: 1.25rem 1.5rem 1rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .result-zfw-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-hint); margin-bottom: 4px; }
+  .result-zfw-value { font-size: 42px; font-weight: 700; line-height: 1; color: var(--text-primary); }
+  .result-zfw-unit { font-size: 16px; font-weight: 400; color: var(--text-secondary); margin-left: 4px; }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-top: 4px;
+  }
+  .status-pill svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .pill-ok   { background: var(--green-light); color: var(--green); }
+  .pill-warn { background: var(--amber-light); color: var(--amber); }
+  .pill-crit { background: var(--red-light); color: var(--red); }
+
+  /* constraint breakdown */
+  .constraint-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 0.5px solid var(--border);
+  }
+  .c-block {
+    padding: 14px 16px;
+    border-right: 0.5px solid var(--border);
+    position: relative;
+  }
+  .c-block:last-child { border-right: none; }
+  .c-block.limiting { background: var(--surface2); }
+  .c-block .cb-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-hint); margin-bottom: 3px; }
+  .c-block .cb-val { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+  .c-block .cb-val.ok-col   { color: var(--green); }
+  .c-block .cb-val.warn-col { color: var(--amber); }
+  .c-block .cb-val.crit-col { color: var(--red); }
+  .limiting-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+  }
+  .lt-ok   { background: var(--green-light); color: var(--green); }
+  .lt-warn { background: var(--amber-light); color: var(--amber); }
+  .lt-crit { background: var(--red-light); color: var(--red); }
+
+  /* bar */
+  .bar-section { padding: 12px 16px 16px; border-top: 0.5px solid var(--border); }
+  .bar-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .bar-track { background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+  .bar-ok   { background: var(--green-mid); }
+  .bar-warn { background: var(--amber-mid); }
+  .bar-crit { background: var(--red-mid); }
+
+  /* reason box */
+  .reason-card {
+    border-radius: var(--radius-xl);
+    border: 0.5px solid var(--border);
+    background: var(--surface);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .reason-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-hint); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .reason-title svg { width: 14px; height: 14px; }
+  .reason-body {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.75;
+    border-left: 3px solid var(--border-strong);
+    padding-left: 14px;
+  }
+  .reason-body.ok   { border-left-color: var(--green-mid); }
+  .reason-body.warn { border-left-color: var(--amber-mid); }
+  .reason-body.crit { border-left-color: var(--red-mid); }
+
+  /* empty state */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-hint);
+  }
+  .empty-state svg { width: 40px; height: 40px; margin-bottom: 12px; opacity: 0.35; }
+  .empty-state p { font-size: 14px; }
+
+  /* footer */
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 0.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .footer-note { font-size: 12px; color: var(--text-hint); line-height: 1.6; max-width: 420px; }
+  .footer-note strong { color: var(--text-secondary); }
+
+  /* Reset btn */
+  .btn-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 18px;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-reset:hover { background: var(--surface2); color: var(--text-primary); }
+  .btn-reset svg { width: 14px; height: 14px; }
+
+  @media (max-width: 480px) {
+    .constraint-grid { grid-template-columns: 1fr; }
+    .c-block { border-right: none; border-bottom: 0.5px solid var(--border); }
+    .limits-strip { grid-template-columns: repeat(2, 1fr); }
+    .result-zfw-value { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#E1F5EE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.82 19.79 19.79 0 0118 2.18 2 2 0 0120 4.36v3.04"/>
+        <path d="M2 2l20 20"/>
+      </svg>
+    </div>
+    <div>
+      <div class="topbar-title">Weight &amp; Balance</div>
+      <div class="topbar-sub">ZFW Restriction Calculator</div>
+    </div>
+  </div>
+  <span class="topbar-badge">OPS TOOL</span>
+</div>
+
+<!-- Page -->
+<div class="page">
+
+  <div class="page-header">
+    <h1>ZFW Restriction Calculator</h1>
+    <p>Select the aircraft registration and enter block, taxi, and trip fuel to determine the maximum Zero Fuel Weight that can be planned for the sector.</p>
+  </div>
+
+  <!-- Input card -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Aircraft &amp; Fuel Inputs
+    </div>
+
+    <div class="field-grid field-grid-2" style="margin-bottom:1rem;">
+      <div class="field">
+        <label>Aircraft Registration</label>
+        <div class="input-wrap">
+          <select id="reg-select" class="standalone" onchange="onRegChange()">
+            <option value="">— Select registration —</option>
+            <option value="A6-AQU">A6-AQU</option>
+            <option value="A6-AQT">A6-AQT</option>
+            <option value="A320 CEO">A320 CEO</option>
+            <option value="A320 NEO">A320 NEO</option>
+            <option value="A321 NEO">A321 NEO</option>
+            <option value="A321 CEO">A321 CEO</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Aircraft Type</label>
+        <div class="input-wrap">
+          <input type="text" id="ac-type" readonly placeholder="Auto-populated">
+        </div>
+      </div>
+    </div>
+
+    <!-- Limits strip -->
+    <div class="limits-strip" id="limits-strip">
+      <div class="limit-chip"><div class="lc-label">MZFW</div><div class="lc-val" id="lc-mzfw">—</div></div>
+      <div class="limit-chip"><div class="lc-label">MLM</div><div class="lc-val" id="lc-mlm">—</div></div>
+      <div class="limit-chip"><div class="lc-label">MTOW</div><div class="lc-val" id="lc-mtow">—</div></div>
+      <div class="limit-chip"><div class="lc-label">MRW</div><div class="lc-val" id="lc-mrw">—</div></div>
+    </div>
+
+    <div class="field-grid field-grid-3" style="margin-top:1.25rem;">
+      <div class="field">
+        <label>Block Fuel</label>
+        <div class="field-hint">Total fuel on board at departure</div>
+        <div class="input-wrap" style="margin-top:4px;">
+          <input type="number" id="block-fuel" placeholder="e.g. 6500" min="0" step="10" oninput="calculate()">
+          <span class="unit-tag">kg</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Taxi Fuel</label>
+        <div class="field-hint">Fuel burned prior to take-off</div>
+        <div class="input-wrap" style="margin-top:4px;">
+          <input type="number" id="taxi-fuel" placeholder="e.g. 200" min="0" step="10" oninput="calculate()">
+          <span class="unit-tag">kg</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Trip Fuel</label>
+        <div class="field-hint">Fuel burned from T/O to landing</div>
+        <div class="input-wrap" style="margin-top:4px;">
+          <input type="number" id="trip-fuel" placeholder="e.g. 4200" min="0" step="10" oninput="calculate()">
+          <span class="unit-tag">kg</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-wrap" id="result-wrap">
+
+    <div class="result-main" id="result-main">
+      <!-- header -->
+      <div class="result-header">
+        <div>
+          <div class="result-zfw-label">Max Plannable ZFW</div>
+          <div><span class="result-zfw-value" id="res-value">—</span><span class="result-zfw-unit">kg</span></div>
+        </div>
+        <div id="res-pill" class="status-pill pill-ok">
+          <svg id="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="pill-text">—</span>
+        </div>
+      </div>
+
+      <!-- constraint breakdown -->
+      <div class="constraint-grid">
+        <div class="c-block" id="cb-mzfw">
+          <div class="cb-label">MZFW structural</div>
+          <div class="cb-val" id="cbv-mzfw">—</div>
+        </div>
+        <div class="c-block" id="cb-mlm">
+          <div class="cb-label">MLM derived</div>
+          <div class="cb-val" id="cbv-mlm">—</div>
+          <div id="cbt-mlm" style="display:none" class="limiting-tag">Limiting</div>
+        </div>
+        <div class="c-block" id="cb-mtow">
+          <div class="cb-label">MTOW derived</div>
+          <div class="cb-val" id="cbv-mtow">—</div>
+          <div id="cbt-mtow" style="display:none" class="limiting-tag">Limiting</div>
+        </div>
+      </div>
+
+      <!-- utilisation bar -->
+      <div class="bar-section">
+        <div class="bar-row">
+          <span>ZFW utilisation vs MZFW</span>
+          <span id="bar-pct">—</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-ok" id="bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reason -->
+    <div class="reason-card">
+      <div class="reason-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Restriction Analysis
+      </div>
+      <div class="reason-body" id="reason-body">—</div>
+    </div>
+
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" id="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+    <p>Select a registration and enter fuel figures<br>to calculate the ZFW restriction</p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-note">
+      <strong>Formula:</strong> Max ZFW = MIN( MZFW, MTOW − TOW Fuel, MLM − Landing Fuel )<br>
+      TOW Fuel = Block − Taxi &nbsp;|&nbsp; Landing Fuel = Block − Taxi − Trip. All weights in kilograms.
+    </div>
+    <button class="btn-reset" onclick="resetForm()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+      Reset
+    </button>
+  </div>
+</div>
+
+<script>
+const FLEET = {
+  "A6-AQU":   { type: "A320-216S", mzfw: 62500, mlm: 66000, mtow: 75500, mrw: 75900 },
+  "A6-AQT":   { type: "A320-216S", mzfw: 62500, mlm: 66000, mtow: 75500, mrw: 75900 },
+  "A320 CEO": { type: "A320-214S", mzfw: 62500, mlm: 66000, mtow: 77000, mrw: 77400 },
+  "A320 NEO": { type: "A320-251",  mzfw: 64300, mlm: 67400, mtow: 79000, mrw: 79400 },
+  "A321 NEO": { type: "A321-251",  mzfw: 75600, mlm: 79200, mtow: 97000, mrw: 97400 },
+  "A321 CEO": { type: "A321-211S", mzfw: 73800, mlm: 77800, mtow: 93500, mrw: 93900 },
+};
+
+function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+
+function onRegChange() {
+  const reg = document.getElementById("reg-select").value;
+  const strip = document.getElementById("limits-strip");
+  if (!reg) {
+    document.getElementById("ac-type").value = "";
+    strip.classList.remove("show");
+    clearResult();
+    return;
+  }
+  const ac = FLEET[reg];
+  document.getElementById("ac-type").value = ac.type;
+  document.getElementById("lc-mzfw").textContent = fmt(ac.mzfw) + " kg";
+  document.getElementById("lc-mlm").textContent  = fmt(ac.mlm)  + " kg";
+  document.getElementById("lc-mtow").textContent = fmt(ac.mtow) + " kg";
+  document.getElementById("lc-mrw").textContent  = fmt(ac.mrw)  + " kg";
+  strip.classList.add("show");
+  calculate();
+}
+
+function clearResult() {
+  document.getElementById("result-wrap").classList.remove("show");
+  document.getElementById("empty-state").style.display = "";
+}
+
+function calculate() {
+  const reg   = document.getElementById("reg-select").value;
+  const bVal  = document.getElementById("block-fuel").value;
+  const tVal  = document.getElementById("taxi-fuel").value;
+  const trVal = document.getElementById("trip-fuel").value;
+  if (!reg || bVal === "" || tVal === "" || trVal === "") { clearResult(); return; }
+
+  const ac    = FLEET[reg];
+  const block = parseFloat(bVal);
+  const taxi  = parseFloat(tVal);
+  const trip  = parseFloat(trVal);
+  if (isNaN(block) || isNaN(taxi) || isNaN(trip)) { clearResult(); return; }
+
+  const towFuel     = block - taxi;        // fuel at take-off
+  const landingFuel = towFuel - trip;      // fuel at landing = TOW fuel minus trip burn
+
+  const fromMZFW = ac.mzfw;
+  const fromMTOW = ac.mtow - towFuel;     // MTOW restriction: ZFW = MTOW - TOW fuel
+  const fromMLM  = ac.mlm  - landingFuel; // MLM restriction:  ZFW = MLM  - landing fuel
+  const maxZFW   = Math.min(fromMZFW, fromMTOW, fromMLM);
+
+  let state, pillText, reason;
+  const isMTOWLimiting = fromMTOW <= fromMLM && fromMTOW < fromMZFW;
+  const isMLMLimiting  = fromMLM  <  fromMTOW && fromMLM  < fromMZFW;
+
+  // Reset constraint tags
+  document.getElementById("cbt-mlm").style.display  = "none";
+  document.getElementById("cbt-mtow").style.display = "none";
+  ["cb-mzfw","cb-mlm","cb-mtow"].forEach(id => document.getElementById(id).classList.remove("limiting"));
+  ["cbv-mzfw","cbv-mlm","cbv-mtow"].forEach(id => { document.getElementById(id).className = "cb-val"; });
+
+  if (isMTOWLimiting) {
+    state = "crit";
+    pillText = "Restricted — MTOW Limiting";
+    document.getElementById("cb-mtow").classList.add("limiting");
+    document.getElementById("cbv-mtow").classList.add("crit-col");
+    document.getElementById("cbt-mtow").style.display = "inline-block";
+    document.getElementById("cbt-mtow").className = "limiting-tag lt-crit";
+    reason = `<strong>Maximum Take-Off Mass (MTOW) is the limiting factor.</strong><br><br>
+With a Block Fuel of <strong>${fmt(block)} kg</strong> and Taxi Fuel of <strong>${fmt(taxi)} kg</strong>, the Take-Off Fuel is <strong>${fmt(towFuel)} kg</strong>. Adding any ZFW above <strong>${fmt(Math.round(fromMTOW))} kg</strong> would push the Take-Off Mass beyond the certified MTOW of <strong>${fmt(ac.mtow)} kg</strong>.<br><br>
+The MLM-derived ZFW (${fmt(Math.round(fromMLM))} kg — based on Landing Fuel of ${fmt(Math.round(landingFuel))} kg) is less restrictive. To increase the Max ZFW, reduce Take-Off Fuel by lowering contingency, alternate, or extra fuel — subject to regulatory minima.`;
+  } else if (isMLMLimiting) {
+    state = "crit";
+    pillText = "Restricted — MLM Limiting";
+    document.getElementById("cb-mlm").classList.add("limiting");
+    document.getElementById("cbv-mlm").classList.add("crit-col");
+    document.getElementById("cbt-mlm").style.display = "inline-block";
+    document.getElementById("cbt-mlm").className = "limiting-tag lt-crit";
+    reason = `<strong>Maximum Landing Mass (MLM) is the limiting factor.</strong><br><br>
+With a Trip Fuel of <strong>${fmt(trip)} kg</strong>, the estimated Landing Fuel is <strong>${fmt(Math.round(landingFuel))} kg</strong> (TOW Fuel ${fmt(towFuel)} kg − Trip ${fmt(trip)} kg). A ZFW above <strong>${fmt(Math.round(fromMLM))} kg</strong> would cause the Landing Mass to exceed the certified MLM of <strong>${fmt(ac.mlm)} kg</strong>.<br><br>
+The MTOW-derived ZFW (${fmt(Math.round(fromMTOW))} kg) is less restrictive. To allow a higher ZFW, review whether trip or contingency fuel can be reduced, subject to regulatory minima.`;
+  } else {
+    state = "ok";
+    pillText = "No Fuel Restriction — MZFW applies";
+    document.getElementById("cbv-mzfw").classList.add("ok-col");
+    reason = `<strong>No fuel-driven weight restriction on this sector.</strong><br><br>
+With a Take-Off Fuel of <strong>${fmt(towFuel)} kg</strong> and Landing Fuel of <strong>${fmt(Math.round(landingFuel))} kg</strong> (Trip Fuel: ${fmt(trip)} kg), neither the MTOW (<strong>${fmt(ac.mtow)} kg</strong>) nor the MLM (<strong>${fmt(ac.mlm)} kg</strong>) impose a tighter ZFW limit than the structural ceiling.<br><br>
+Maximum plannable ZFW is the aircraft's certified <strong>MZFW of ${fmt(ac.mzfw)} kg</strong>. Payload planning may proceed up to this structural limit.`;
+  }
+
+  document.getElementById("res-value").textContent = fmt(maxZFW);
+  document.getElementById("cbv-mzfw").textContent  = fmt(fromMZFW) + " kg";
+  document.getElementById("cbv-mtow").textContent  = fmt(Math.round(fromMTOW)) + " kg";
+  document.getElementById("cbv-mlm").textContent   = fmt(Math.round(fromMLM))  + " kg";
+
+  const pill = document.getElementById("res-pill");
+  pill.className = "status-pill pill-" + (state === "ok" ? "ok" : "crit");
+  document.getElementById("pill-text").textContent = pillText;
+  const pillIcon = document.getElementById("pill-icon");
+  pillIcon.innerHTML = state === "ok"
+    ? '<polyline points="20 6 9 17 4 12"/>'
+    : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+
+  const pct = Math.min(100, Math.round((maxZFW / ac.mzfw) * 100));
+  const bar = document.getElementById("bar-fill");
+  bar.style.width = pct + "%";
+  bar.className = "bar-fill bar-" + (state === "ok" ? "ok" : "crit");
+  document.getElementById("bar-pct").textContent = pct + "% utilised";
+
+  document.getElementById("result-main").className = "result-main " + state;
+
+  const rb = document.getElementById("reason-body");
+  rb.innerHTML = reason;
+  rb.className = "reason-body " + state;
+
+  document.getElementById("result-wrap").classList.add("show");
+  document.getElementById("empty-state").style.display = "none";
+}
+
+function resetForm() {
+  document.getElementById("reg-select").value = "";
+  document.getElementById("ac-type").value = "";
+  document.getElementById("block-fuel").value = "";
+  document.getElementById("taxi-fuel").value = "";
+  document.getElementById("trip-fuel").value = "";
+  document.getElementById("limits-strip").classList.remove("show");
+  clearResult();
+}
+</script>
+</body>
+</html>
